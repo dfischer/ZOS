@@ -12,7 +12,13 @@ The installed compiler is i686-elf-gcc
 
 I will use C to start, because the tutorials are in C, but ultimately I would like to use C++
 
-## Todo
+# Implemented Components
+
+## Bootloader
+
+Right now I'm using GRUB as the bootloader, which hands off to boot.S. boot.S declares the things necessary for multiboot, reserves space for the stack (in section bss), and includes the code
+
+# Todo
 
 * Look more into where everything really is stored in memory
 
