@@ -9,7 +9,8 @@
  
 static const size_t VGA_WIDTH = 80;
 static const size_t VGA_HEIGHT = 25;
-static uint16_t* const VGA_MEMORY = (uint16_t*) 0xC03FF000;
+static uint16_t* const VGA_MEMORY = (uint16_t*) 0xC00B8000;
+//static uint16_t* const VGA_MEMORY = (uint16_t*) 0xB8000;
  
 static size_t terminal_row;
 static size_t terminal_column;
@@ -43,8 +44,9 @@ void terminal_putchar(char c) {
     terminal_putentryat(uc, terminal_color, terminal_column, terminal_row);
     if (++terminal_column == VGA_WIDTH) {
         terminal_column = 0;
-        if (++terminal_row == VGA_HEIGHT)
+        if (++terminal_row == VGA_HEIGHT) {
             terminal_row = 0;
+        }
     }
 }
  
@@ -55,4 +57,11 @@ void terminal_write(const char* data, size_t size) {
  
 void terminal_writestring(const char* data) {
     terminal_write(data, strlen(data));
+}
+
+void terminal_newline(void) {
+    terminal_column = 0;
+    if (++terminal_row == VGA_HEIGHT) {
+        terminal_row = 0;
+    }
 }

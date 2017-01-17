@@ -20,9 +20,11 @@ Right now I'm using GRUB as the bootloader, which hands off to boot.S. boot.S de
 
 # Todo
 
-* Look more into where everything really is stored in memory
+* Make the pages dynamically allocated after you have a working physical memory manager
 
-* Learn about the GDT (http://wiki.osdev.org/GDT) and how to implement it (http://wiki.osdev.org/GDT_Tutorial)
+* Only allocate the pages for kernel, not the whole memory
+
+
 
 * Learn about interrupts and how to implement them as well
 
@@ -35,4 +37,14 @@ Right now I'm using GRUB as the bootloader, which hands off to boot.S. boot.S de
 * FAT32 driver
 
 * Userspace
+
+# Not sure of yet:
+
+Do I need to jump to the higher half?
+
+Do I need the write-protected bit when enabling paging: 0x80000000 or 0x80010000
+
+Do I need to map the VGA buffer explicitly and leave the address what it is now, or should I initialize all of the pages to 0 and just use 0xC0000000 + whatever it was before (B something)
+
+Do I use the hardware address (PTR version) or virtual address for loadPageDirectory(probably the hardware address because paging isn't set up yet)
 

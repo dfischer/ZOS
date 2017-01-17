@@ -2,7 +2,9 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
  
 static bool print(const char* data, size_t length) {
     const unsigned char* bytes = (const unsigned char*) data;
@@ -50,6 +52,34 @@ int printf(const char* restrict format, ...) {
             if (!print(&c, sizeof(c)))
                 return -1;
             written++;
+        } else if (*format == 'x') {
+            format++;
+            uint32_t d = va_arg(parameters, uint32_t);
+            char str_version[32] = {0};
+            uitoa(d, str_version, 16);
+
+            size_t len = strlen(str_version);
+              if (maxrem < len) {
+                  // TODO: Set errno to EOVERFLOW.
+                  return -1;
+              }
+              if (!print(str_version, len))
+                  return -1;
+              written += len;
+
+        } else if (*format == 'd') {
+            format++;
+            int d = va_arg(parameters, int);
+            char str_version[32] = {0};
+            itoa(d, str_version, 10);
+            size_t len = strlen(str_version);
+            if (maxrem < len) {
+                // TODO: Set errno to EOVERFLOW.
+                return -1;
+            }
+            if (!print(str_version, len))
+                return -1;
+            written += len;
         } else if (*format == 's') {
             format++;
             const char* str = va_arg(parameters, const char*);

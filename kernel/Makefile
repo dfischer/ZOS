@@ -30,6 +30,16 @@ LIBS:=$(LIBS) $(KERNEL_ARCH_LIBS)
 KERNEL_OBJS=\
 $(KERNEL_ARCH_OBJS) \
 kernel/kernel.o \
+kernel/pmmngr.o \
+kernel/vmmngr.o \
+kernel/kmalloc.o \
+kernel/isrs.o \
+kernel/irq.o \
+kernel/kb.o \
+kernel/timer.o \
+drivers/hdd/ata.o \
+drivers/hdd/mbr.o \
+drivers/fat32.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \
@@ -48,7 +58,7 @@ $(ARCHDIR)/crtend.o \
 $(ARCHDIR)/crtn.o \
 
 .PHONY: all clean install install-headers install-kernel
-.SUFFIXES: .o .c .S
+.SUFFIXES: .o .c .S .asm
 
 all: myos.kernel
 
@@ -64,6 +74,9 @@ $(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o:
  
 .S.o:
 	$(CC) -MD -c $< -o $@ $(CFLAGS) $(CPPFLAGS)
+
+.asm.o:
+	nasm -f elf -o $@ $<
  
 clean:
 	rm -f myos.kernel

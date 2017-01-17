@@ -1,0 +1,15 @@
+#ifndef _DRIVERS_MBR_H
+#define _DRIVERS_MBR_H
+
+typedef struct {
+    unsigned char id;
+    unsigned char type;
+    unsigned char drive;
+    unsigned int sector;
+    unsigned int length;
+    unsigned int next;
+} partition;
+
+partition* read_partitions(unsigned char device);
+
+#endif
