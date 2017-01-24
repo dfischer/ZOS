@@ -13,11 +13,27 @@
 #include <kernel/timer.h>
 #include <drivers/ata.h>
 #include <drivers/fat32.h>
+#include <kernel/terminal.h>
+#include <kernel/vfs.h>
+#include <kernel/task.h>
+#include <kernel/read_elf.h>
  
 extern uint32_t kernelStart;
 extern uint32_t kernelEnd;
 
-void kernel_main(multiboot_info_t *mbd, unsigned int magic) {
+int testp(int p1) {
+    printf("this is a test\n");
+
+    for (int i = 0; i < 10; i++) {
+        p1 += 2*i;
+    }
+
+    return p1;
+}
+
+void kernel_main(multiboot_info_t *mbd, uint32_t initial_stack) {
+    initial_esp = initial_stack;
+    uint32_t pd_physical_addr = get_pd_pa();
     uint32_t kernelpages = init_paging((uint32_t)&kernelStart, (uint32_t)&kernelEnd);
     gdt_install();
     
@@ -28,8 +44,8 @@ void kernel_main(multiboot_info_t *mbd, unsigned int magic) {
     terminal_initialize();
     
     pmmngr_init(mbd, kernelpages);
-    //printf("kernelStart: %x\n", (uint32_t)&kernelStart);
-    //printf("kernelEnd: %x\n", (uint32_t)&kernelEnd);
+    printf("kernelStart: %x\n", (uint32_t)&kernelStart);
+    printf("kernelEnd: %x\n", (uint32_t)&kernelEnd);
     //printf("mem_lower (bytes): %x\n", mbd->mem_lower*1024);
     //printf("mem_upper (bytes): %x\n", mbd->mem_upper*1024);
     unmap_idmap(); // For now we'll do this here, beacuse mbd uses physical addresses, so we need the ID map still
@@ -43,9 +59,90 @@ void kernel_main(multiboot_info_t *mbd, unsigned int magic) {
 
     ide_initialize(0x1F0, 0x3F4, 0x170, 0x374, 0x000);
 
+    for (int i = 1020; i < 1024; i++) {
+        printf("%x ", get_pagedir()[i]);
+    }
+    printf("\n");
+    printf("%x\n", (uint32_t)&initial_stack);
+
     unsigned int pnum = 1; // Just for now, assume that we want to use hdd and partition 5
     
-    init_fat32(hdd, pnum);
+    init_fat32();
+
+    
+
+    printf("mounting drive...\n");
+    mount(hdd, pnum, 'a');
+    //printf("opening file...\n");
+
+    //uint32_t old_stack_pointer; __asm__ __volatile__("mov %%esp, %0" : "=r" (old_stack_pointer));
+    //printf("old stack pointer: %x\n", old_stack_pointer);
+
+    //printf("result of get_pagedir(): %x. Result of get_pagetable(768): %x\n", get_pagedir(), get_pagetable(768));
+
+    init_multitasking(pd_physical_addr+0x40000000);
+
+    int res = read_elf("a:/test");
+
+    /*for (int i = 760; i < 780; i++) {
+        printf("%x ", get_pagedir()[i]);
+    }
+    printf("\n");
+
+
+    for (int i = 890; i < 910; i++) {
+        printf("%x ", get_pagedir()[i]);
+    }
+    printf("\n");
+
+    printf("%x\n", get_pagedir()[1023]);
+
+    for (int i = 0; i <20; i++) {
+        printf("%x ", get_pagetable(768)[i]);
+    }
+    printf("\n");
+
+    for (int i = 0; i <20; i++) { 
+        printf("%x ", get_pagetable(896)[i]);
+    } 
+    printf("\n");*/
+
+    /*int ret = fork();
+
+    printf("fork() returned %x, getpid() returned %x\n", ret, getpid());
+
+    for (int i = 1; i < 10; i++) {
+        int tmp = 73;
+        for (int j = 1; j < 2872389; j++) {
+            tmp += ((117234253*i*j) % 5);
+        }
+        printf("%d ", tmp);
+    }*/
+
+    //__asm__ __volatile__("mov %%esp, %0" : "=r" (old_stack_pointer));
+    //printf("new stack pointer: %x\n", old_stack_pointer);
+
+    /*FILE* file = fopen("a:/this is a file.txt", "r");
+    //int res = fgetc(file);
+
+    for (int i = 0; i < 100; i++) {
+        printf("%x", fgetc(file));
+    }
+
+    int res2 = fclose(file);*/
+    /*
+    int fd = open("a:/this is a file.txt");
+
+    unsigned char* buffer = allocate_page();
+    int res2 = read(fd, buffer);
+    printf("\n%s\n\n", buffer);
+
+    printf("closing file with fd %d...\n", fd);
+    int res = close(fd);
+    printf("result: %d\n", res);
+    */
+
+    //init_terminal(rootnode);
 
     //const char* diskID = kmalloc(11);
     //memcpy(diskID, (unsigned char*) (ptr+0x1b4), 10);
@@ -100,4 +197,5 @@ void kernel_main(multiboot_info_t *mbd, unsigned int magic) {
     //print_map(0, 20);
 
     //NEXT UP, SET UP A SYSTEM TO MAP THE NEW PAGE INTO THE VIRTUAL ADDRESS SPACE, AND THINK ABOUT REORGANIZING MAYBE
+    printf("Done.");
 }

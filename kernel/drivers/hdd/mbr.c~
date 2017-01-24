@@ -147,7 +147,6 @@ Partition 4 at %d, length: %d sectors, system id: %x, bootflag: %x\n",
 			p->sector = mbr->p1.lba+starting_ep;
 			p->length = mbr->p1.sectors;
 			p->next = 0;
-            printf("%x\n", current_p);
 			current_p->next = p;
 			current_p = p;
 			

@@ -4,9 +4,6 @@
 #include <stddef.h>
 #include <stdint.h>
 
-uint32_t kernelpagedir[1024] __attribute__ ((aligned (4096)));
-uint32_t lowpagetable[1024] __attribute__ ((aligned (4096)));
-
 uint32_t init_paging(uint32_t, uint32_t);
 void unmap_idmap(void);
 

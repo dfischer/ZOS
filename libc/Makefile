@@ -32,6 +32,9 @@ $(ARCH_FREEOBJS) \
 stdio/printf.o \
 stdio/putchar.o \
 stdio/puts.o \
+stdio/fopen.o \
+stdio/fclose.o \
+stdio/fgetc.o \
 stdlib/abort.o \
 stdlib/itoa.o \
 string/memcmp.o \
@@ -40,6 +43,8 @@ string/memmove.o \
 string/memset.o \
 string/strlen.o \
 string/strcpy.o \
+string/strtok.o \
+string/strcmp.o \
  
 HOSTEDOBJS=\
 $(ARCH_HOSTEDOBJS) \

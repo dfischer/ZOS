@@ -39,7 +39,11 @@ kernel/kb.o \
 kernel/timer.o \
 drivers/hdd/ata.o \
 drivers/hdd/mbr.o \
-drivers/fat32.o \
+drivers/fat32_2.o \
+kernel/terminal.o \
+kernel/vfs.o \
+kernel/task.o \
+kernel/read_elf.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \

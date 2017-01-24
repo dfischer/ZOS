@@ -14,6 +14,10 @@ uint32_t lowpagetable[1024] __attribute__ ((aligned (4096)));
  * addresses at 0xFFF00000
  */
 // Returns the number of pages mapped for the kernel
+uint32_t get_pd_pa() {
+    return (uint32_t)kernelpagedir;
+}
+
 uint32_t init_paging(uint32_t kernelstart, uint32_t kernelend) {
     void *kernelpagedirPtr = (char *)kernelpagedir + 0x40000000; // adding 4 is the same as subtracting C
     void *lowpagetablePtr = (char *)lowpagetable + 0x40000000;

@@ -1,6 +1,8 @@
 #include <stdio.h>
 
 #include <kernel/intex.h>
+#include <kernel/kb.h>
+#include <kernel/kmalloc.h>
 
 unsigned char kbdus[128] = {
         0,  27, '1', '2', '3', '4', '5', '6', '7', '8', /* 9 */
@@ -82,13 +84,51 @@ unsigned char kbdus_shift[128] = {
 
 unsigned char keystatus = 0; /* x x x x x ctrl alt shift*/
 
-void keyboard_handler(struct regs *r) {
+char_handler* first_callback = 0;
+
+void register_callback(handler_func func) {
+    char_handler* current_callback;
+    if (first_callback) {
+        current_callback = first_callback;
+        while (current_callback->next) {
+            current_callback = current_callback->next;
+        }
+        current_callback->next = kmalloc(sizeof(char_handler));
+        current_callback = current_callback->next;
+    } else {
+        first_callback = current_callback = kmalloc(sizeof(char_handler));
+    }
+    current_callback->func = func;
+}
+
+unsigned char unregister_callback(handler_func func) {
+    char_handler* current_callback = first_callback;
+    char_handler* last_callback = 0;
+    while (current_callback) {
+        if (current_callback->func == func) {
+            if (last_callback) {
+                last_callback->next = current_callback->next;
+            } else {
+                first_callback = 0;
+            }
+            kfree(current_callback);
+            return 0;
+        }
+
+        last_callback = current_callback;
+        current_callback = current_callback->next;
+    }
+    return 1;
+}
+
+void keyboard_handler(regs_t* r) {
 	unsigned char scancode = inportb(0x60);
 	
 	unsigned char c;
 	if (keystatus & 0x01) c = kbdus_shift[scancode];
 	else c = kbdus[scancode];
 	
+    char_handler* current_callback;
 	if (scancode & 0x80) { /* Key was released*/
 		switch(c) {
 		case 19: keystatus &= 0xFB; break;
@@ -101,7 +141,13 @@ void keyboard_handler(struct regs *r) {
 		case 20: keystatus |= 0x02; break;
 		case 21: keystatus |= 0x01; break;
 		
-		default: printf("%c", (char)c);
+		default: 
+            //printf("%c", (char)c);
+            current_callback = first_callback;
+            while (current_callback) {
+                current_callback->func(c);
+                current_callback = current_callback->next;
+            }
 		}
 	}
 }

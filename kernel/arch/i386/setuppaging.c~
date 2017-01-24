@@ -3,6 +3,9 @@
 
 #include <kernel/setuppaging.h>
 
+uint32_t kernelpagedir[1024] __attribute__ ((aligned (4096)));
+uint32_t lowpagetable[1024] __attribute__ ((aligned (4096)));
+
 /*
  * Initialize paging, and start by mapping the first 1MB and the kernel which exists from 1MB to a little past
  * 1MB into the page table. Then this page table is identity mapped to 0x00000000, and also mapped in the
@@ -45,7 +48,4 @@ uint32_t init_paging(uint32_t kernelstart, uint32_t kernelend) {
 void unmap_idmap() {
     uint32_t* kernelpagedir_real = (uint32_t*)(0xFFFFF000);
     kernelpagedir_real[0] = 0x00000000;
-
-    asm volatile (  "mov %%cr3, %%ecx\n"
-              "mov %%ecx, %%cr3\n" :); // Force the unmapping to take effect
 }

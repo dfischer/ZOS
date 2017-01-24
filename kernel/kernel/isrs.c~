@@ -1,3 +1,5 @@
+#include <stdio.h>
+
 #include <kernel/intex.h>
 
 extern void isr0();

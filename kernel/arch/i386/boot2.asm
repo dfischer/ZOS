@@ -30,7 +30,8 @@ start:
 higherhalf:
     mov esp, sys_stack
 
-    push eax
+    push esp
+    ;push eax ; We don't really need the magic bits...
     push ebx
     call kernel_main
 
@@ -49,6 +50,36 @@ gdt_flush:
     jmp 0x08:flush2
 flush2:
     ret
+
+global tss_flush
+tss_flush:
+    mov ax, 0x2B ; Load the index of our TSS structure - The index is
+                      ; 0x28, as it is the 5th selector and each is 8 bytes
+                      ; long, but we set the bottom two bits (making 0x2B)
+                      ; so that it has an RPL of 3, not zero.
+    ltr ax            ; Load 0x2B into the task state register.
+    ret
+
+global read_eip
+read_eip:
+    pop eax
+    jmp eax
+
+global set_regs
+set_regs:
+    cli
+    mov eax, [esp+4]
+    mov ebx, [esp+8]
+    mov ecx, [esp+12]
+    mov edx, [esp+16]
+    mov esp, eax
+    mov ebp, ebx
+    mov cr3, edx
+    mov al, 0x20
+    out 0x20, al
+    mov eax, 0x12345
+    sti
+    jmp ecx
 
 global idt_load
 extern idtp
@@ -308,32 +339,31 @@ isr31:
     jmp isr_common_stub
 
 extern fault_handler
-
 isr_common_stub:
     pusha
-    push ds
-    push es
-    push fs
-    push gs
+
+    mov ax, ds
+    push eax
 
     mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
-    mov eax, esp
-    push eax
-    mov eax, fault_handler
-    call eax
+;    mov eax, esp
+;    push eax
+;    mov eax, irq_handler
+    call fault_handler
+;    pop eax
+    pop ebx
+    mov ds, bx
+    mov es, bx
+    mov fs, bx
+    mov gs, bx
 
-    pop eax
-    pop gs
-    pop fs
-    pop es
-    pop ds
     popa
-
     add esp, 8
+    sti
     iret
 
 global irq0
@@ -468,26 +498,33 @@ irq15:
 extern irq_handler
 irq_common_stub:
     pusha
-    push ds
-    push es
-    push fs
-    push gs
+
+    mov ax, ds
+    push eax
+    mov ebx, cr3
+    push ebx
+
     mov ax, 0x10
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
-    mov eax, esp
-    push eax
-    mov eax, irq_handler
-    call eax
-    pop eax
-    pop gs
-    pop fs
-    pop es
-    pop ds
+;    mov eax, esp
+;    push eax
+;    mov eax, irq_handler
+    call irq_handler
+;    pop eax
+    pop ebx
+    mov cr3, ebx
+    pop ebx
+    mov ds, bx
+    mov es, bx
+    mov fs, bx
+    mov gs, bx
+
     popa
     add esp, 8
+    sti
     iret
 
 [section .setup]

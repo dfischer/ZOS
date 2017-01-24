@@ -105,9 +105,9 @@ void pmmngr_init(multiboot_info_t *mbd, uint32_t kernel_pages) {
     // accounted for by the virtual memory manager) are not allowed to be given to others
     pmmngr_deinit_region(0x00000000, kernel_pages*4096);
     
-    printf("free blocks: %d\n", mmngr_max_blocks-mmngr_used_blocks);
+    //printf("free blocks: %d\n", mmngr_max_blocks-mmngr_used_blocks);
 
-    print_map(0, 20);
+    //print_map(0, 20);
 }
 
 // This will have to work entirely with ints instead of pointers so that the conversion to virtual addresses 
@@ -120,7 +120,7 @@ uint32_t pmmngr_alloc_block() {
 	
 	set_mmap(frame);
 	uint32_t addr = frame * PMMNGR_BLOCK_SIZE;
-	//memset((unsigned char *)addr, 0x00, PMMNGR_BLOCK_SIZE);
+	memset((unsigned char *)addr, 0x00, PMMNGR_BLOCK_SIZE);
 	mmngr_used_blocks++;
 	
 	return addr;

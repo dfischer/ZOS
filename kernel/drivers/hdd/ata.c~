@@ -402,14 +402,14 @@ unsigned char ide_ata_access(unsigned char direction, unsigned char drive, unsig
             for (int j = 0; j < numsects; j++) {
                 err = ide_polling(channel, 1);
 
-                printf("j: %d, numsects: %d, buffer: %x, ", j, numsects, buffer);
+                //printf("j: %d, numsects: %d, buffer: %x, ", j, numsects, buffer);
 
                 if (err) return err; // Polling, then set error and exit if there is.
                 //asm("pushw %es" :);
                 //asm("mov %%ax, %%es"::"a"(selector));
                 __asm__ __volatile__("rep insw"::"c"(words), "d"(bus), "D"(buffer)); // Receive Data.
                 //asm("popw %es" :);
-                printf("buffer: %x\n", buffer);
+                //printf("buffer: %x\n", buffer);
                 //buffer += words; // I'm pretty sure we don't actually need this, the asm takes care of it
             }
         } else {

@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
+uint32_t get_pd_pa();
 uint32_t init_paging(uint32_t, uint32_t);
 void unmap_idmap(void);
 

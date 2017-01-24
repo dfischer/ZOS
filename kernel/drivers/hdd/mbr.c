@@ -40,14 +40,14 @@ partition* read_partitions(unsigned char device) {
 	err = ide_read_sectors(device, 1, 0, 0, (unsigned short *)mbr);
 	if (err > 0) {ide_print_error(device, err); return 0;}
 	
-	printf("Partition 1 at %d, length: %d sectors, system id: %x, bootflag: %x\n\
+	/*printf("Partition 1 at %d, length: %d sectors, system id: %x, bootflag: %x\n\
 Partition 2 at %d, length: %d sectors, system id: %x, bootflag: %x\n\
 Partition 3 at %d, length: %d sectors, system id: %x, bootflag: %x\n\
 Partition 4 at %d, length: %d sectors, system id: %x, bootflag: %x\n",
 		mbr->p1.lba, mbr->p1.sectors, mbr->p1.sysid, mbr->p1.boot_flag,
 		mbr->p2.lba, mbr->p2.sectors, mbr->p2.sysid, mbr->p2.boot_flag,
 		mbr->p3.lba, mbr->p3.sectors, mbr->p3.sysid, mbr->p3.boot_flag,
-		mbr->p4.lba, mbr->p4.sectors, mbr->p4.sysid, mbr->p4.boot_flag);
+		mbr->p4.lba, mbr->p4.sectors, mbr->p4.sysid, mbr->p4.boot_flag);*/
 		
 	partition *current_p = 0;
 	partition *first_p = 0;

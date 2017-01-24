@@ -265,15 +265,16 @@ void ide_initialize(unsigned int BAR0, unsigned int BAR1, unsigned int BAR2, uns
 	for (i = 0; i < 4; i++) {
 		if (ide_devices[i].reserved == 0) continue;
 		if (ide_devices[i].type == IDE_ATA) hdd = i;
-		printf("Found %s Drive %dGB - %s\n\t%s %s\n",
+        
+		/*printf("Found %s Drive %dGB - %s\n\t%s %s\n",
 			(const char *[]){"ATA", "ATAPI"}[ide_devices[i].type],
 			ide_devices[i].size / 1024 / 1024 / 2,
 			ide_devices[i].model,
 			(const char *[]){"Primary", "Secondary"}[ide_devices[i].channel],
-			(const char *[]){"Master", "Slave"}[ide_devices[i].drive]);
+			(const char *[]){"Master", "Slave"}[ide_devices[i].drive]);*/
 	}
 
-    printf("Found HDD at drive %d\n", hdd);
+    //printf("Found HDD at drive %d\n", hdd);
 }
 
 partition* get_partition(unsigned char device, unsigned char pnum) {
