@@ -12,11 +12,8 @@ FILE* fopen(const char* filename, const char* mode) {
 #if defined(__is_libk)
     FILE* stream = kmalloc(sizeof(FILE));
     int fd = open(filename); // mode should go here, but for now we're omitting it..
-    int block_size = get_block_size(fd); // Not used... for now...
-    unsigned char* buffer = allocate_page();
-#else
-    // Otherwise we need to use the libc malloc (not yet implemented...)
-#endif
+    int block_size = get_block_size(fd);
+    unsigned char* buffer = kmalloc(block_size);
 
     if (strcmp(mode, "r") == 0) {
         int result = read(fd, buffer);
@@ -28,4 +25,8 @@ FILE* fopen(const char* filename, const char* mode) {
     stream->file_descriptor = fd;
 
     return stream;
+#else
+    // Otherwise we need to use the libc malloc (not yet implemented...)
+    return 0;
+#endif
 }

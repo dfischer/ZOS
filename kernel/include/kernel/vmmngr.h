@@ -9,6 +9,9 @@ void* allocate_page(void);
 void* allocate_specific_page(uint32_t);
 void free_page(void*);
 
+void* allocate_pages(int);
+void free_pages(void*, int);
+
 uint32_t clone_current_pd();
 void free_pd(uint32_t pd_physical);
 

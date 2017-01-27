@@ -1,0 +1,5 @@
+#include <stdio.h>
+
+size_t fread (void *data, size_t size, size_t count, FILE *stream) {
+
+}

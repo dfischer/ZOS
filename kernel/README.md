@@ -12,6 +12,7 @@ So after loading the "trick" GDT, combined with the way the linker is setup, eve
 
 ## Todo:
 
-Figure out if you can use the page table that was setup before paging was started, or if you have to make a whole new table. (Probably you will need a new table).
+Make sure everything still works if the memory is not assumed to be 0 when the computer starts. You should probably set all the memory in data to 0 before you use it. (The same way you do it to the memory in the heap)
 
-## kernel
+## WHEN YOU SWITCH TO USER MODE:
+

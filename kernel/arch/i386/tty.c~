@@ -46,6 +46,14 @@ void terminal_putchar(char c) {
         if (++terminal_row == VGA_HEIGHT) {
             terminal_row = 0;
         }
+    } else if (c == '\b') {
+        if (terminal_column-- == 0) {
+            terminal_column = VGA_WIDTH-1;
+            if (terminal_row-- == 0) {
+                terminal_row = VGA_HEIGHT-1;
+            }
+        }
+        terminal_putentryat((unsigned char)(' '), terminal_color, terminal_column, terminal_row);
     } else {
         terminal_putentryat(uc, terminal_color, terminal_column, terminal_row);
         if (++terminal_column == VGA_WIDTH) {

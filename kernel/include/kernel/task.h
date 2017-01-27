@@ -15,8 +15,9 @@ typedef struct task {
 } task_t;
 
 int getpid();
-int fork();
+int kfork();
 void switch_task();
+void switch_to_user_mode();
 void init_multitasking(uint32_t initial_pd_physical_addr);
 
 #endif

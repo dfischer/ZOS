@@ -121,7 +121,7 @@ unsigned char unregister_callback(handler_func func) {
     return 1;
 }
 
-void keyboard_handler(regs_t r) {
+void keyboard_handler(regs_t* r) {
 	unsigned char scancode = inportb(0x60);
 	
 	unsigned char c;

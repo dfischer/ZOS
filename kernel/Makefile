@@ -33,7 +33,6 @@ kernel/kernel.o \
 kernel/pmmngr.o \
 kernel/vmmngr.o \
 kernel/kmalloc.o \
-kernel/isrs.o \
 kernel/irq.o \
 kernel/kb.o \
 kernel/timer.o \
@@ -44,6 +43,8 @@ kernel/terminal.o \
 kernel/vfs.o \
 kernel/task.o \
 kernel/read_elf.o \
+kernel/syscall.o \
+kernel/misc.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \
@@ -70,7 +71,7 @@ myos.kernel: $(OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(LINK_LIST)
 	grub-file --is-x86-multiboot myos.kernel
 
-$(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o:
+$(ARCHDIR)/crtbegin.o $(ARCHDIR)/crtend.o $(ARCHDIR)/crti.o $(ARCHDIR)/crtn.o:
 	OBJ=`$(CC) $(CFLAGS) $(LDFLAGS) -print-file-name=$(@F)` && cp "$$OBJ" $@
  
 .c.o:

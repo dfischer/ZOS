@@ -6,6 +6,9 @@
 #include <drivers/ata.h>
 #include <kernel/vfs.h>
 
+// Take out when done debugging!
+#include <drivers/fat32.h>
+
 typedef struct {
     fs_type *type;
     //fs_node *rootnode;
@@ -103,7 +106,7 @@ int get_block_size(int fd) {
     }
 
     mountpoint *mp = ext_mp[curnode->letter-'a'];
-    return mp->type->block_size;
+    return mp->type->getblocksize(mp->bootrecord);
 }
 
 int read(int fd, unsigned char* buffer) {
@@ -121,6 +124,23 @@ int read(int fd, unsigned char* buffer) {
     mountpoint *mp = ext_mp[curnode->letter-'a'];
     int err = mp->type->readblock(mp->drive, mp->sector, mp->bootrecord, curnode, buffer);
     // This should automatically advance the coarse buffer for the file
+    return err;
+}
+
+int adv_buffer(int fd, int num) {   
+    if (fd < 0 || fd >= 1024) {
+        printf("Error, invalid file descriptor %d, unable to advance buffer\n", fd);
+        return 2;
+    }
+
+    fs_node* curnode = fd_table[fd];
+    if (!curnode) {
+        printf("Error, no file associated with file descriptor %d, unable to advance buffer\n", fd);
+        return 1;
+    }
+
+    mountpoint *mp = ext_mp[curnode->letter-'a'];
+    int err = mp->type->advblock(mp->drive, mp->sector, mp->bootrecord, curnode, num);
     return err;
 }
 
@@ -156,6 +176,10 @@ int mount(unsigned char drive, unsigned char pnum, char letter) {
     mp->bootrecord = vbr;
     mp->drive = drive;
     mp->sector = cpart->sector;
+    
+    /*if (mp->type == &fat32_type) {
+        show_info_fat32(vbr);
+    }*/
 
     ext_mp[letter-'a'] = mp;
     return 0;

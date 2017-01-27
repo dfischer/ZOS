@@ -10,7 +10,7 @@
 int fclose(FILE* stream) {
     // We also need to flush the buffer here!
 #if defined(__is_libk)
-    free_page(stream->buffer);
+    kfree(stream->buffer);
 #else
     // otherwise we need to use the libc free (not yet implemented...)
 #endif

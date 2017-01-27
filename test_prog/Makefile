@@ -1,2 +1,2 @@
 all:
-	gcc -g -Wall test.c -o test
+	i686-zos-gcc -g -Wall test.c -o test

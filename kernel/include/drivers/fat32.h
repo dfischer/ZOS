@@ -63,7 +63,8 @@ void free_nodelist(fat32_node* list);*/
 
 // We shouldn't need to be able to see this
 //fat32_node *get_rn_fat32(vbr32_t* vbr);
-
+//
+void show_info_fat32(void* vbr);
 void init_fat32();
 
 #endif

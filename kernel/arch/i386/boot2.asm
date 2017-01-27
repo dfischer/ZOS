@@ -16,6 +16,7 @@ section .multiboot_header
 
 section .text
 
+extern _init
 start:
     lgdt [trickgdt]
     mov ax, 0x10
@@ -33,6 +34,8 @@ higherhalf:
     push esp
     ;push eax ; We don't really need the magic bits...
     push ebx
+
+    call _init
     call kernel_main
 
     jmp $
@@ -119,6 +122,7 @@ global isr28
 global isr29
 global isr30
 global isr31
+global isr128
 
 ; 0: Divide by 0 Exception
 isr0:
@@ -337,13 +341,21 @@ isr31:
     push byte 0
     push byte 31
     jmp isr_common_stub
+; 128 = 0x80: Reserved Exception
+isr128:
+    cli
+    push byte 0
+    push byte 0x80
+    jmp isr_common_stub
 
-extern fault_handler
+extern isr_handler
 isr_common_stub:
     pusha
 
     mov ax, ds
     push eax
+    mov ebx, cr3
+    push ebx
 
     mov ax, 0x10
     mov ds, ax
@@ -353,8 +365,10 @@ isr_common_stub:
 ;    mov eax, esp
 ;    push eax
 ;    mov eax, irq_handler
-    call fault_handler
+    call isr_handler
 ;    pop eax
+    pop ebx
+    mov cr3, ebx
     pop ebx
     mov ds, bx
     mov es, bx
@@ -363,7 +377,7 @@ isr_common_stub:
 
     popa
     add esp, 8
-    sti
+    ;sti ; This is useless because the flags that are about to get popped with set or unset interrupts
     iret
 
 global irq0
@@ -524,7 +538,7 @@ irq_common_stub:
 
     popa
     add esp, 8
-    sti
+    ;sti ; This is useless because the flags that are about to get popped with set or unset interrupts
     iret
 
 [section .setup]

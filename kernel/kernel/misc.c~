@@ -1,0 +1,5 @@
+#include <kernel/misc.h>
+
+void hlt() {
+    for(;;);
+}

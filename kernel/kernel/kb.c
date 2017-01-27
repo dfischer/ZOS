@@ -153,5 +153,5 @@ void keyboard_handler(regs_t* r) {
 }
 
 void kb_install() {
-	irq_install_handler(1, keyboard_handler);
+	irq_install_handler(33, keyboard_handler);
 }

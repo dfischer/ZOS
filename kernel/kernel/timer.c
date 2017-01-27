@@ -13,7 +13,7 @@ void timer_handler(regs_t* r) {
     switch_task(r);
     //printf("tock\n");
 
-	if (timer_ticks % 1 == 0) {
+	if (timer_ticks % 100 == 0) {
 		//printf("A second has passed\n");
 	}
 }
@@ -34,5 +34,5 @@ void sleep(int centiseconds) {
 void timer_install() {
     timer_ticks = 0;
 	set_timer_rate();
-	irq_install_handler(0, &timer_handler);
+	irq_install_handler(32, &timer_handler);
 }

@@ -124,9 +124,9 @@ uint8_t kfree(void *ptr) {
 
 void kmalloc_init() {
 	first_page = setup_page();
-	printf("kmalloc page at %x\n", (uint32_t)first_page);
+	//printf("kmalloc page at %x\n", (uint32_t)first_page);
 	
-	char *p = kmalloc(4088);
+	/*char *p = kmalloc(4088);
 	char *p2 = kmalloc(5);
     p2[0] = 0x3C;
 	kfree(p);
@@ -137,7 +137,7 @@ void kmalloc_init() {
 	for (int i = 4080; i < 4096; i++) {
 		printf("%x ", first_page[i]);
 	}
-	printf("\n");
+	printf("\n");*/
 
 	/*char *p = kmalloc(20);
 	p[0] = 'H';

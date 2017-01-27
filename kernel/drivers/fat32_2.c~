@@ -96,6 +96,11 @@ unsigned int get_next_cluster(unsigned char drive, unsigned int sec, vbr32_t *vb
     return next_cluster;
 }
 
+unsigned int getblocksize_fat32(void* vbr_ptr) {
+    vbr32_t* vbr = (vbr32_t*)vbr_ptr;
+    return vbr->bytes_per_sec*vbr->sectors_per_cluster;
+}
+
 // Fills out the fat32_file part of the fs_node for a given file. This goes through the FAT and makes a linked list of all of the clusters. This way,
 // The current position of the file is determined by wherever in the list we are
 int openfile_fat32(unsigned char drive, unsigned int sector, void* vbr_ptr, fs_node* node) {
@@ -109,7 +114,9 @@ int openfile_fat32(unsigned char drive, unsigned int sector, void* vbr_ptr, fs_n
     fat32_file* current_block = first_block;
     unsigned int current_cluster = current_block->cluster;
     current_block->prev = 0;
+    //printf("cluster list: ");
     while (current_cluster) {
+        //printf("%x ", current_cluster);
         current_block->cluster = current_cluster;
         current_cluster = get_next_cluster(drive, sector, vbr, current_cluster);
         
@@ -118,6 +125,7 @@ int openfile_fat32(unsigned char drive, unsigned int sector, void* vbr_ptr, fs_n
         current_block->next = next_block;
         current_block = next_block;
     }
+    //printf("\n");
 
     return 1; // Success!
 }
@@ -132,11 +140,38 @@ unsigned char readblock_fat32(unsigned char drive, unsigned int sector, void* vb
     unsigned int first_data_sector = vbr->reserved_sectors + vbr->num_fat_tables * vbr->sectors_per_fat;
     unsigned int sector_offset = (file->cluster-2)*vbr->sectors_per_cluster + first_data_sector;
 
-    unsigned char err = ide_read_sectors(drive, 8, sector + sector_offset, 0, (unsigned short *)buffer);
+    //printf("reading from cluster: %x\n", file->cluster);
+    unsigned char err = ide_read_sectors(drive, vbr->sectors_per_cluster, sector + sector_offset, 0, (unsigned short *)buffer);
     if (err > 0) {ide_print_error(drive, err); return 2;}
     
     node->file = file->next;
 
+    return 0;
+}
+
+unsigned char advblock_fat32(unsigned char drive, unsigned int sector, void* vbr_ptr, fs_node* node, int num_blocks) {
+    int seek_backwards = 0;
+    if (num_blocks < 0) {
+        seek_backwards = 1;
+        num_blocks = -num_blocks;
+    }
+
+    for (int i = 0; i < num_blocks; i++) {
+        fat32_file* file = node->file;
+        if (!file->cluster) { // Then the end of the line has been reached
+            return 1;
+        }
+        fat32_file* next_file;
+        if (seek_backwards) { 
+            next_file = (fat32_file*) file->prev;
+        } else {
+            next_file = (fat32_file*) file->next;
+        }
+        if (!next_file) { // Then file is the first element
+            return 1;
+        }
+        node->file = next_file;
+    }
     return 0;
 }
 
@@ -147,9 +182,10 @@ fs_node* finddir_fat32(unsigned char drive, unsigned int sector, void* vbr_ptr, 
     }
 
     vbr32_t* vbr = (vbr32_t*)vbr_ptr;
+    unsigned int bytes_per_cluster = getblocksize_fat32(vbr);
 
     unsigned int first_data_sector = vbr->reserved_sectors + vbr->num_fat_tables * vbr->sectors_per_fat;
-    dir_entry *entries = allocate_page();
+    dir_entry *entries = kmalloc(bytes_per_cluster);
 
     unsigned int current_cluster = ((fat32_file*)(directory->file))->cluster;
 
@@ -159,15 +195,15 @@ fs_node* finddir_fat32(unsigned char drive, unsigned int sector, void* vbr_ptr, 
     while (current_cluster) {
         unsigned int sector_offset = (current_cluster-2)*vbr->sectors_per_cluster + first_data_sector; // The actual sector, offset from the start of the partition
 
-        memset(entries, 0, 4096);
-        unsigned char err = ide_read_sectors(drive, 8, sector + sector_offset, 0, (unsigned short *)entries);
+        memset(entries, 0, getblocksize_fat32(vbr));
+        unsigned char err = ide_read_sectors(drive, vbr->sectors_per_cluster, sector + sector_offset, 0, (unsigned short *)entries);
         if (err > 0) {
             ide_print_error(drive, err);
-            free_page(entries);
+            kfree(entries);
             return 0;
         }
 
-        for (int i = 0; i < 128; i++) {
+        for (int i = 0; i < bytes_per_cluster/sizeof(dir_entry); i++) {
             if (entries[i].std.name[0] == 0) break; // First byte == 0 means the rest of the entries are empty
             if (entries[i].std.name[0] == 0xE5) continue; // First byte == 0xE5 means the entry is empty
             if (entries[i].std.attr == 0x0F) { // Long file name
@@ -205,7 +241,7 @@ fs_node* finddir_fat32(unsigned char drive, unsigned int sector, void* vbr_ptr, 
                     file->cluster = entries[i].std.cluster_high << 16 | entries[i].std.cluster_low;
                     newnode->file = file;
                     kfree(filename);
-                    free_page(entries);
+                    kfree(entries);
                     return newnode;
                 }
                 kfree(filename);
@@ -216,7 +252,7 @@ fs_node* finddir_fat32(unsigned char drive, unsigned int sector, void* vbr_ptr, 
         current_cluster = get_next_cluster(drive, sector, vbr, current_cluster);
     }
 
-    free_page(entries);
+    kfree(entries);
     return 0;
 }
 
@@ -389,19 +425,21 @@ void* get_br_fat32(unsigned char drive, unsigned int sector) {
     return vbr;
 }
 
-void show_info(vbr32_t* vbr) {
+void show_info_fat32(void* vbr_ptr) {
+    vbr32_t* vbr = (vbr32_t*)vbr_ptr;
     printf("bytes per sector: %d\nsectors per cluster: %d\nnum fats: %d\nnum sectors: %d\nlarge sectors: %d\nreserved sectors: %d\n", vbr->bytes_per_sec, vbr->sectors_per_cluster, vbr->num_fat_tables, vbr->total_sectors, vbr->sectors_ext, vbr->reserved_sectors);
 }
 
 void init_fat32() {
     fat32_type.name = "fat32";
-    fat32_type.block_size = 4096;
+    fat32_type.getblocksize = getblocksize_fat32;
     fat32_type.finddir = finddir_fat32;
     fat32_type.readblock = readblock_fat32;
     fat32_type.get_br = get_br_fat32;
     fat32_type.get_rn = get_rn_fat32;
     fat32_type.openfile = openfile_fat32;
     fat32_type.freenode = freenode_fat32;
+    fat32_type.advblock = advblock_fat32;
 
     //partition* cpart = get_partition(device, pnum);
     //vbr32_t* vbr = read_vbr(cpart->drive, cpart->sector);

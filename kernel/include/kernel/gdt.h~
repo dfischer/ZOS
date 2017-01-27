@@ -3,6 +3,6 @@
 
 #include <stddef.h>
 
-void terminal_writestring(const char* data);
+void gdt_install(void);
 
 #endif

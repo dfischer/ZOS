@@ -32,7 +32,7 @@ char* itoa(int value, char *str, int base) {
     return res;
 }
 
-char* uitoa(uint32_t value, char *str, int base) {
+char* uitoa(unsigned int value, char *str, int base) {
     char *res;
     char *ptr;
     char *low;

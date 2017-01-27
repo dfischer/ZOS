@@ -47,10 +47,35 @@ uint8_t *setup_page() {
 	return new_page;
 }
 
+typedef struct pagelist {
+    void* ptr;
+    uint32_t np;
+    struct pagelist* next;
+} pagelist_t;
+
+pagelist_t* first_pl;
+
 void *kmalloc(uint16_t bytes) {
+    if (bytes == 0) return 0;
 	if (bytes > 4088) {
-		printf("Error, allocating too much space, use pages instead\n");
-		return 0;
+		//printf("Error, allocating too much space, use pages instead\n");
+		//return 0;
+        
+        pagelist_t* current_pl;
+        if (first_pl) {
+            current_pl = first_pl;
+            while (current_pl->next) {
+                current_pl = current_pl->next;
+            }
+            current_pl->next = kmalloc(sizeof(pagelist_t));
+            current_pl = current_pl->next;
+        } else {
+            first_pl = current_pl = kmalloc(sizeof(pagelist_t));
+        }
+        int np = (bytes-1)/4096+1;
+        current_pl->ptr = allocate_pages(np);
+        current_pl->np = np;
+        return current_pl->ptr;
 	}
 	
 	uint8_t *current_page = first_page;
@@ -89,6 +114,7 @@ void *kmalloc(uint16_t bytes) {
 
 uint8_t kfree(void *ptr) {
 	uint8_t *current_page = first_page;
+    int ptr_nfound = 0;
 	while(1) {
 		if ((uint32_t)ptr >= (uint32_t)current_page && (uint32_t)ptr < 4096 + (uint32_t)current_page) break;
 		uint16_t *header = read_short(current_page, 4090);
@@ -99,12 +125,38 @@ uint8_t kfree(void *ptr) {
 		
 		uint32_t next_page_addr = *(uint32_t *)(header+1);
 		if (next_page_addr == 0) {
-			printf("Error, pointer not in kmalloc space\n");
-			return 1;
+			//printf("Error, pointer not in kmalloc space\n");
+			//return 1;
+            ptr_nfound = 1;
+            break;
 		}
 		
 		current_page = (uint8_t *)next_page_addr;
 	}
+
+    if (ptr_nfound) {
+        pagelist_t* current_pl = first_pl;
+        pagelist_t* prev_pl = 0;
+        while (current_pl) {
+            if (current_pl->ptr == ptr) { // Then the user's ptr was allocated in page units
+                free_pages(current_pl->ptr, current_pl->np);
+                if (prev_pl) {
+                    prev_pl->next = current_pl->next;
+                    kfree(current_pl);
+                } else {
+                    kfree(current_pl);
+                    first_pl = 0;
+                }
+                return 0;
+            }
+            prev_pl = current_pl;
+            current_pl = current_pl->next;
+        }
+        
+        printf("Error, pointer not in kmalloc space\n");
+        return 1;
+    }
+
 	//printk("Found page of ptr at %x\n", current_page);
 	
 	uint16_t *header = (uint16_t *)((uint8_t*)ptr-2);

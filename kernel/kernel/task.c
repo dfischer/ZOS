@@ -86,7 +86,7 @@ int extra_bytes = -1; // This is going to be a hack. We need to know how many ex
                         // a new processes stack so returns through all the functions correctly
 uint32_t* correct_return_codes = 0;
 
-int fork() {
+int kfork() {
     __asm__ __volatile__("cli"); // Disable interrupts
 
     task_t* parent_task = task_queue; // Remember the current running process originally
@@ -203,8 +203,58 @@ int fork() {
     }
 }
 
-extern void set_regs(uint32_t esp, uint32_t ebp, uint32_t eip, uint32_t cr3);
+void switch_to_user_mode() {
+   // Set up a stack structure for switching to user mode.
+   
+   
+   // We also enable interrupts upon return by setting the correct flag in eflags
+   __asm__ __volatile__("  \
+     cli; \
+     mov $0x23, %%ax; \
+     mov %%ax, %%ds; \
+     mov %%ax, %%es; \
+     mov %%ax, %%fs; \
+     mov %%ax, %%gs; \
+                   \
+     mov %%esp, %%eax; \
+     pushl $0x23; \
+     pushl %%eax; \
+     pushf; \
+     pop %%eax; \
+     or $0x200, %%eax; \
+     push %%eax; \
+     pushl $0x1B; \
+     push $1f; \
+     iret; \
+   1: \
+     " ::);
+}
 
+void start_process(const char* filename, char* const argv[]) {
+    int pid = kfork();
+    if (pid == 0) { // If we're the child
+        //int res = kexecv_elf(filename, argv);
+        printf("Error, need to implement what to do when a process finishes!\n");
+    }
+}
+
+void switch_out_of_kernel() {
+    if (!task_queue) {
+        return;
+    }
+
+    // Swap the active task
+    
+    task_t* kernel = task_queue;
+    task_queue = kernel->next;
+    kfree(kernel);
+
+    // Now all we have to do is put in the correct stack and address space, and the program will continue on
+    // to return from the interrupt
+
+    __asm__ __volatile__("mov %0, %%esp;" :: "r"(task_queue->esp));
+    __asm__ __volatile__("mov %0, %%cr3;" :: "r"(task_queue->page_directory));
+}
 
 // This will effectively initially be called by the task that is currently running
 // We will need to save the state of that task, and then load the esp, ebp, and eip of the task to switch to

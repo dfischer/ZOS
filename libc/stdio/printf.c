@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdint.h>
  
 static bool print(const char* data, size_t length) {
     const unsigned char* bytes = (const unsigned char*) data;
@@ -54,7 +53,7 @@ int printf(const char* format, ...) {
             written++;
         } else if (*format == 'x') {
             format++;
-            uint32_t d = va_arg(parameters, uint32_t);
+            unsigned int d = va_arg(parameters, unsigned int);
             char str_version[32] = {0};
             uitoa(d, str_version, 16);
 

@@ -1,0 +1,51 @@
+#include <stdio.h>
+
+#if defined(__is_libk)
+#include <kernel/vfs.h>
+#endif
+
+int fseek(FILE* stream, long offset, int whence) {
+    long total_pos;
+    if (whence == SEEK_SET) {
+        total_pos = offset;
+    } else if(whence == SEEK_CUR) {
+        total_pos = stream->curpos.clusternum*stream->buffer_size+stream->curpos.clusteroffset+offset;
+    } else {
+        printf("Error, seeking from end of file not yet implemented. Aborting\n");
+        return 1;
+    }
+    printf("offset: %x\n", (unsigned int)offset);
+
+    int final_cluster = total_pos/stream->buffer_size;
+    int final_offset = total_pos % stream->buffer_size;
+    //printf("Seeking to cluster %x, offset %x\n", final_cluster, final_offset);
+
+    int res = 0;
+#if defined(__is_libk)
+    // We need the -1 here because the clusternum is the number before the block is read basically, so for example after fopen clusternum=0, which is correct, but the fat32 node has the current block set to the second block, because it's already read one.
+    res = adv_buffer(stream->file_descriptor, final_cluster-stream->curpos.clusternum-1);
+#else
+    res = -1;
+#endif
+    if (res) {
+        printf("Error, unable to advance the file buffer correctly. The offset is out of range of the file\n");
+        return 2;
+    }
+    
+    res = 0;
+#if defined(__is_libk)
+    res = read(stream->file_descriptor, stream->buffer);
+#else
+    res = -1;
+#endif
+
+    if (res) {
+        printf("Error, unable to read from the file after advancing the buffer\n");
+        return 3;
+    }
+    
+    stream->curpos.clusternum = final_cluster;
+    stream->curpos.clusteroffset = final_offset;
+
+    return 0;
+}

@@ -12,4 +12,6 @@ void free_page(void*);
 uint32_t clone_current_pd();
 void free_pd(uint32_t pd_physical);
 
+void* get_virtual_addr(uint32_t physical_addr);
+
 #endif

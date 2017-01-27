@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include <kernel/multiboot.h>
 #include <kernel/tty.h>
@@ -16,6 +17,8 @@
 #include <kernel/terminal.h>
 #include <kernel/vfs.h>
 #include <kernel/task.h>
+#include <kernel/read_elf.h>
+#include <kernel/syscall.h>
  
 extern uint32_t kernelStart;
 extern uint32_t kernelEnd;
@@ -37,7 +40,7 @@ void kernel_main(multiboot_info_t *mbd, uint32_t initial_stack) {
     gdt_install();
     
     idt_install();
-    isrs_install();
+    //isrs_install(); // Taken out to streamline everything in irq.c
     irq_install();
 
     terminal_initialize();
@@ -72,6 +75,30 @@ void kernel_main(multiboot_info_t *mbd, uint32_t initial_stack) {
 
     printf("mounting drive...\n");
     mount(hdd, pnum, 'a');
+    /*int fd = open("a:/st_d_4095.txt");
+    unsigned char* buffer = kmalloc(get_block_size(fd));
+    for (int i = 0; i < 8; i++) {
+        int res = read(fd, buffer);
+
+        int num_0 = 0;
+        for (int j = 0; j < get_block_size(fd); j++) {
+            if (buffer[j] == 0) num_0++;
+        }
+
+        printf("read res: %x, num_0: %d\n", res, num_0);
+    }
+    kfree(buffer);
+    close(fd);*/
+
+    /*
+    for (int i = 0; i < 10; i++) {
+        printf("%x ", buffer[i]);
+    }
+    printf("\n\n");
+    for (int i = 760; i < 780; i++) {
+        printf("%x ", buffer[i]);
+    }
+    printf("\n");*/
     //printf("opening file...\n");
 
     //uint32_t old_stack_pointer; __asm__ __volatile__("mov %%esp, %0" : "=r" (old_stack_pointer));
@@ -80,6 +107,36 @@ void kernel_main(multiboot_info_t *mbd, uint32_t initial_stack) {
     //printf("result of get_pagedir(): %x. Result of get_pagetable(768): %x\n", get_pagedir(), get_pagetable(768));
 
     init_multitasking(pd_physical_addr+0x40000000);
+
+    init_syscalls();
+
+    int pid = kfork();
+
+    if (pid) { // This is the parent
+        
+        uint32_t kernel_stack;
+    }
+
+
+
+    /*uint32_t kernel_stack;
+    __asm__ __volatile__("mov %%esp, %0" : "=r"(kernel_stack));
+    set_kernel_stack(kernel_stack-8); // This -8 is a huge hack. I need to think more carefully about where exactly the stack is set from. Also it will be a different case when the kernel and the user mode are not using the same stack
+
+    switch_to_user_mode();
+
+    char t = 't';
+    syscall_terminal_write(&t, 1);*/
+
+
+
+
+
+
+
+    //int res = read_elf("a:/test");
+    //read_elf("a:/test_old");
+
 
     /*for (int i = 760; i < 780; i++) {
         printf("%x ", get_pagedir()[i]);
@@ -104,7 +161,7 @@ void kernel_main(multiboot_info_t *mbd, uint32_t initial_stack) {
     } 
     printf("\n");*/
 
-    int ret = fork();
+    /*int ret = fork();
 
     printf("fork() returned %x, getpid() returned %x\n", ret, getpid());
 
@@ -114,7 +171,7 @@ void kernel_main(multiboot_info_t *mbd, uint32_t initial_stack) {
             tmp += ((117234253*i*j) % 5);
         }
         printf("%d ", tmp);
-    }
+    }*/
 
     //__asm__ __volatile__("mov %%esp, %0" : "=r" (old_stack_pointer));
     //printf("new stack pointer: %x\n", old_stack_pointer);
@@ -195,7 +252,6 @@ void kernel_main(multiboot_info_t *mbd, uint32_t initial_stack) {
 
     //NEXT UP, SET UP A SYSTEM TO MAP THE NEW PAGE INTO THE VIRTUAL ADDRESS SPACE, AND THINK ABOUT REORGANIZING MAYBE
     printf("Done.");
-
-    int res = testp(12);
-    printf("res: %d\n", res);
+    syscall_hlt();
+    //__asm__ __volatile__("int $0x80");
 }
