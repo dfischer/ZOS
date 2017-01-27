@@ -162,6 +162,11 @@ void* allocate_specific_page(uint32_t vaddr) {
     return newpage;
 }
 
+void allocate_user_pages(uint32_t vaddr, uint32_t size) {
+    int num_pages = size/0x1000;
+
+}
+
 // Both deallocate the physical page, and unmap the virtual page. The unmapping probably isn't really necessary,
 // but it's good practice and it will be needed when we start talking about userspace things. In this vein,
 // if the page table is now empty we will also deallocate and unmap the empty page table

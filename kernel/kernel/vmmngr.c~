@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include <kernel/pmmngr.h>
+#include <kernel/kmalloc.h>
 
 uint32_t* get_pagedir() {
     return (uint32_t*)0xFFFFF000;
@@ -10,6 +11,78 @@ uint32_t* get_pagedir() {
 
 uint32_t* get_pagetable(uint32_t i) {
     return (uint32_t*)(0xFFC00000+i*0x1000);
+}
+
+void* allocate_pages(int np) {
+    if (np > 4000) {
+        printf("Error, unable to allocate %d pages in sequence. The maximum is 4000\n", np);
+        return 0;
+    }
+
+    uint32_t* paddrs = kmalloc(sizeof(uint32_t)*np);
+    for (int i = 0; i < np; i++) {
+        paddrs[i] = pmmngr_alloc_block();
+        if (!paddrs[i]) {
+            for (int j = 0; j < i; j++) {
+                pmmngr_free_block(paddrs[j]);
+            }
+            printf("Error, unable to allocate a physical page in allocate_pages. Aborting\n");
+            return 0;
+        }
+    }
+
+    // First see if there is room in any existing page tables
+    uint32_t* pd = get_pagedir();
+    for (int i = 768; i < 896; i++){ // This means we're only allocating pages past 0xC0000000
+        if (pd[i] & 1) {
+            uint32_t* pt = get_pagetable(i);
+
+            uint32_t start_idx = 0;
+            for (int j = 0; j < 1024; j++) {
+                if (pt[j] & 1) { // If the PTE exists, move on
+                    start_idx = j+1;
+                } else {
+                    uint32_t num_avail = j-start_idx+1;
+                    if (num_avail >= np) {
+                        for (int k = start_idx; k <= j; k++) {
+                            pt[k] = paddrs[k-start_idx] | 7;
+                        }
+                        void* newpage = (void*)(i*0x400000+start_idx*0x1000);
+                        memset(newpage, 0x00, 0x1000*np);
+                        return newpage;
+                    }
+                }
+            }
+        }
+    }
+
+    // Next see if we can make a new page table
+    
+    for (int i = 768; i < 896; i++) {
+        if (!(pd[i] & 1)) {
+            uint32_t page_table_paddress = pmmngr_alloc_block();
+            if (!page_table_paddress) {
+                printf("Error, unable to allocate a physical page for the new page table in allocate_pages\n");
+                return (void*)0;
+            }
+            pd[i] = page_table_paddress | 7;
+            uint32_t* pt = get_pagetable(i);
+            memset(pt, 0x00, 0x1000); // We need to first clear the page table
+
+            for (int k = 0; k < np; k++) {
+                pt[k] = paddrs[k] | 7;
+            }
+            void* newpage = (void*)(i*0x400000);
+            memset(newpage, 0x00, 0x1000*np);
+            return newpage;
+        }
+    }
+
+    printf("Error, unable to allocate a page, not enough space on the heap. Consider making the heap resizable\n");
+    for (int i = 0; i < np; i++) {
+        pmmngr_free_block(paddrs[i]);
+    }
+    return (void*)0;
 }
 
 
@@ -98,7 +171,7 @@ void free_page(void* vaddr_ptr) {
     int pde_i = vaddr / 0x400000; // Each page table maps 4 MB = 0x400000
     int pte_i = (vaddr % 0x400000) / 0x1000;
 
-    pmmngr_free_block(get_pagetable(pde_i)[pte_i]);
+    pmmngr_free_block(get_pagetable(pde_i)[pte_i] & 0xFFFFF000);
 
     // First, unmap the memory location
     get_pagetable(pde_i)[pte_i] = 0x00000000;
@@ -111,11 +184,19 @@ void free_page(void* vaddr_ptr) {
     }
 
     // If we've got this far, then the table didn't have any entries so we can free the memory and unmap the pt
-    pmmngr_free_block(get_pagedir()[pde_i]);
+    pmmngr_free_block(get_pagedir()[pde_i] & 0xFFFFF000);
 
     get_pagedir()[pde_i] = 0x00000000;
     asm volatile (  "mov %%cr3, %%ecx\n"
               "mov %%ecx, %%cr3\n" :); //Force the changes to take effect
+}
+
+void free_pages(void* start, int np) {
+    char* page = start;
+    for (int i = 0; i < np; i++) {
+        free_page(page);
+        page += 0x1000;
+    }
 }
 
 uint32_t get_physical_addr(void* vaddr_ptr) {
