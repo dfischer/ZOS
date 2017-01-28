@@ -71,6 +71,7 @@ read_eip:
 global switch_to_user_mode
 switch_to_user_mode:
     cli
+    pop ecx ; to get rid of the return eip which is not needed
     pop ecx ; entry_pos
     pop edx ; new user esp
     mov ax, 0x23

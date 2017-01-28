@@ -96,7 +96,6 @@ void gdt_install() {
     tss_flush();
 }
 
-// This needs to be called whenever there is a task switch so that the TSS knows where to find the correct kernel esp
 void set_kernel_stack(uint32_t stack) {
     tss_entry.esp0 = stack;
 }

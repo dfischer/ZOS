@@ -17,23 +17,23 @@ section .multiboot_header
 section .text
 
 extern _init
-start:
+start: ; Jump in point
     lgdt [trickgdt]
-    mov ax, 0x10
+    mov ax, 0x10 ; 0x10 selects the 3rd segment (kernel data)
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
     mov ss, ax
 
-    jmp 0x08:higherhalf
+    jmp 0x08:higherhalf ; 0x08 selects the 2nd segment (kernel code)
 
 higherhalf:
     mov esp, sys_stack
 
-    push esp
+    push esp ; Get the actual stack pointer
     ;push eax ; We don't really need the magic bits...
-    push ebx
+    push ebx ; This will contain the multiboot info
 
     call _init
     call kernel_main
@@ -63,11 +63,13 @@ tss_flush:
     ltr ax            ; Load 0x2B into the task state register.
     ret
 
+; Somewhat of a trick to read the current eip from c code
 global read_eip
 read_eip:
     pop eax
     jmp eax
 
+; Assembly function to place the eip and esp for user mode correctly, and then iret to jump in
 global switch_to_user_mode
 switch_to_user_mode:
     cli
@@ -90,7 +92,7 @@ switch_to_user_mode:
     push ecx
     iret
     
-
+; This was used before, but now it's not needed
 global set_regs
 set_regs:
     cli
@@ -364,13 +366,14 @@ isr31:
     push byte 0
     push byte 31
     jmp isr_common_stub
-; 128 = 0x80: Reserved Exception
+; 128 = 0x80: INT 0x80, i.e. syscall!
 isr128:
     cli
     push byte 0
     push byte 0x80
     jmp isr_common_stub
 
+; Save the state, then enter the interrupt handler
 extern isr_handler
 isr_common_stub:
     pusha

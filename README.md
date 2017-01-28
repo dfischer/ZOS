@@ -31,6 +31,13 @@ Near the beginning of execution, the stack is moved from the .bss section in the
 
 When the OS loads a program into memory, it places it starting near 0x08048000, as directed by the ELF file. It then adds a stack and a heap directly after the data segment. The stack is used correctly, but as of now the heap is never used because a user space malloc and free do not exist yet. The user space program uses this stack space, and when an interrupt happens the stack is switched to the process's specific kernel stack. Because of this it's helpful to think about the kernel not as a single process that gets run when an interrupt happens, but as a number of processes, with one existing for each user space process. When an interrupt happens, execution is handed over to the kernel version of the process. When the processes switch, both the user space and the kernel space processes are switched. The user space and kernel space processes effectively share an address space.
 
+## Useful links
+
+* [osdev](http://wiki.osdev.org/)
+* [ELF format information](http://www.skyfree.org/linux/references/ELF_Format.pdf)
+* [More in-depth examples](http://www.jamesmolloy.co.uk/tutorial_html/) - Note: while these are good as examples, some of the code has bugs and some of it is really not ideal. I really believe my code makes more sense
+
+
 ## Todo
 
 * libc
