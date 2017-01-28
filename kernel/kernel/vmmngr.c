@@ -140,31 +140,31 @@ void* allocate_page() {
 // I am 95% sure this is correct, even though parts seem weird. get_pagetable() gets a pointer to something like
 // 0xFF000000, but you should still be able to set the entries, so setting them all to 0 should work fine, for
 // example.
-void* allocate_specific_page(uint32_t vaddr) {
+int allocate_specific_page(uint32_t vaddr, int user, int writable) {
+    unsigned char flags = 1;
+    if (writable) flags |= 1 << 1;
+    if (user) flags |= 1 << 2;
+    //printf("flags: %x\n", flags);
+
     int pde_i = vaddr / 0x400000; // Each page table maps 4 MB = 0x400000
     int pte_i = (vaddr % 0x400000) / 0x1000;
 
     if (get_pagedir()[pde_i]) {
         if (get_pagetable(pde_i)[pte_i]) {
             printf("Error allocating page %x, this page has already been allocated\n", vaddr);
-            return 0;
+            return 1;
         }
     } else {
-        get_pagedir()[pde_i] = pmmngr_alloc_block() | 7;
+        get_pagedir()[pde_i] = pmmngr_alloc_block() | flags;
         uint32_t* new_pt = get_pagetable(pde_i);
         memset(new_pt, 0x00, 0x1000);
     }
 
-    get_pagetable(pde_i)[pte_i] = pmmngr_alloc_block() | 7;
+    get_pagetable(pde_i)[pte_i] = pmmngr_alloc_block() | flags;
     void* newpage = (void*) vaddr;
     memset(newpage, 0x00, 0x1000);
 
-    return newpage;
-}
-
-void allocate_user_pages(uint32_t vaddr, uint32_t size) {
-    int num_pages = size/0x1000;
-
+    return 0;
 }
 
 // Both deallocate the physical page, and unmap the virtual page. The unmapping probably isn't really necessary,
@@ -180,7 +180,7 @@ void free_page(void* vaddr_ptr) {
 
     // First, unmap the memory location
     get_pagetable(pde_i)[pte_i] = 0x00000000;
-    asm volatile (  "mov %%cr3, %%ecx\n"
+    __asm__ __volatile__ (  "mov %%cr3, %%ecx\n"
               "mov %%ecx, %%cr3\n" :); //Force the changes to take effect
 
     // Then see if we have to unmap the page table
@@ -192,7 +192,7 @@ void free_page(void* vaddr_ptr) {
     pmmngr_free_block(get_pagedir()[pde_i] & 0xFFFFF000);
 
     get_pagedir()[pde_i] = 0x00000000;
-    asm volatile (  "mov %%cr3, %%ecx\n"
+    __asm__ __volatile__ (  "mov %%cr3, %%ecx\n"
               "mov %%ecx, %%cr3\n" :); //Force the changes to take effect
 }
 
@@ -277,6 +277,26 @@ void* get_virtual_addr(uint32_t physical_addr) {
 
     printf("Error, unable to find physical address %x in the heap\n", physical_addr);
     return 0;
+}
+
+void clean_current_userspace() {
+    uint32_t* pd = get_pagedir();
+    
+    for (int i = 0; i < 768; i++) { // Only clean up the userspace
+        if (!pd[i]) continue;
+        uint32_t* pt = get_pagetable(i);
+
+        for (int j = 0; j < 1024; j++) {
+            if (!pt[j]) continue;
+            pmmngr_free_block(pt[j] & 0xFFFFF000);
+            pt[j] = 0x00000000;
+        }
+        pmmngr_free_block(pd[i] & 0xFFFFF000);
+        pd[i] = 0x00000000;
+    }
+
+    __asm__ __volatile__ (  "mov %%cr3, %%ecx\n"
+              "mov %%ecx, %%cr3\n" :); //Force the changes to take effect
 }
 
 void free_pd(uint32_t pd_physical) {

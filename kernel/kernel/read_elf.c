@@ -1,11 +1,15 @@
 #include <stdint.h>
+#include <string.h>
 #include <stdio.h>
 
 #include <kernel/vfs.h>
 #include <kernel/vmmngr.h>
 #include <kernel/kmalloc.h>
+#include <kernel/gdt.h>
+#include <kernel/task.h>
+#include <kernel/elf.h>
 
-typedef struct {
+/*typedef struct {
     uint32_t magic;
     uint8_t address_size;
     uint8_t endian;
@@ -49,9 +53,9 @@ typedef struct {
     uint32_t info;
     uint32_t alignment;
     uint32_t ent_size;
-} __attribute__((packed)) sheader_entry;
+} __attribute__((packed)) sheader_entry;*/
 
-char* open_strtab(FILE* file, elf_header* header) {
+char* open_strtab2(FILE* file, elf_header* header) {
     sheader_entry* strtab_header = kmalloc(sizeof(sheader_entry));
     int strtab_filepos = header->section_header_table_pos+header->section_name_pos*header->s_header_table_entry_size;
     printf("strtab position: %x\n", strtab_filepos);
@@ -66,15 +70,15 @@ char* open_strtab(FILE* file, elf_header* header) {
     return string_table;
 }
 
-char* read_strtab(char* strtab, int idx) {
+char* read_strtab2(char* strtab, int idx) {
     return strtab+idx;
 }
 
-void close_strtab(char* string_table) {
+void close_strtab2(char* string_table) {
     kfree(string_table);
 }
 
-int kexecv_elf(const char* filename, char* const argv[]) {
+/*int kexecv_elf(const char* filename, int argc, char* argv[]) {
     FILE* file = fopen(filename, "r");
 
     if (!file) {
@@ -102,18 +106,43 @@ int kexecv_elf(const char* filename, char* const argv[]) {
         pheader_entry* ent = pheader_table+i;
     
         if (ent->type == 0x01) { // load
-            
+            int num_pages = ent->segment_size_memory/0x1000+1;
+            size_t start_addr = ent->vaddr & 0xFFFFF000;
+            for (int i = 0; i < num_pages; i++) {
+                allocate_specific_page(start_addr, 1, 1); // For now... though later we should probably be more careful about permissions
+                start_addr += 0x1000;
+            }
+
+            memset((void*)ent->vaddr, 0, ent->segment_size_memory);
+            unsigned char* data = kmalloc(ent->segment_size_file);
+
+            fseek(file, ent->data_offset, SEEK_SET);
+            fread(data, ent->segment_size_file, 1, file);
+            memcpy((void*)ent->vaddr, data, ent->segment_size_file);
+
+            kfree(data);
+
         } else {
             printf("error, unable to handle program header table entry: type: %x, offset: %x, vaddr: %x, size_file: %x, size_mem: %x, flags: %x, align: %x\n", ent->type, ent->data_offset, ent->vaddr,  ent->segment_size_file,  ent->segment_size_memory,  ent->flags,  ent->alignment);
         }
     }
+
+    uint32_t entry_pos = header->pentry_pos;
     
     kfree(pheader_table);
     kfree(header);
     fclose(file);
 
-
-}
+    uint32_t kernel_stack;
+      __asm__ __volatile__("mov %%esp, %0" : "=r"(kernel_stack));
+    set_kernel_stack(kernel_stack-0x80); // Set the kernel stack to be farther down... just in case...
+    switch_to_user_mode();
+    __asm__ __volatile__("\
+            push %1;\
+            push %0;\
+            jmp *%2" : : "r" (argc), "r" (argv),  "r" (entry_pos));
+    return 0; // This should never happen...
+}*/
 
 int read_elf(char* filename) {
     
@@ -139,19 +168,19 @@ int read_elf(char* filename) {
     printf("\n");
 
 
-    char* string_table = open_strtab(file, header);
+    char* string_table = open_strtab2(file, header);
 
     sheader_entry* sheader_table = (sheader_entry*) kmalloc(sizeof(sheader_entry)*header->s_header_table_num_entries);
 
     fseek(file, header->section_header_table_pos, SEEK_SET);
     fread(sheader_table, sizeof(sheader_entry), header->s_header_table_num_entries, file);
 
-    for (int i = 0x13; i < header->s_header_table_num_entries; i++) {
+    for (int i = 0x06; i < 12/*header->s_header_table_num_entries*/; i++) {
         sheader_entry* ent = sheader_table+i;
-        printf("name: %s, type: %x, attr: %x, vaddr: %x, offset: %x, size: %x, info: %x\n", read_strtab(string_table, ent->name_offset), ent->type, ent->offset,  ent->vaddr,  ent->offset,  ent->size,  ent->info);
+        printf("name: %s, type: %x, attr: %x, vaddr: %x, offset: %x, size: %x, info: %x\n", read_strtab2(string_table, ent->name_offset), ent->type, ent->offset,  ent->vaddr,  ent->offset,  ent->size,  ent->info);
     }
 
-    close_strtab(string_table);
+    close_strtab2(string_table);
     kfree(sheader_table);
 
     kfree(header);

@@ -1,6 +1,8 @@
 #include <stdio.h>
 
 #include <kernel/intex.h>
+#include <kernel/task.h>
+#include <kernel/vmmngr.h>
 
 char *exception_messages[] = {
     "Division By Zero",
@@ -167,6 +169,11 @@ void irq_install() {
 }
 
 void irq_handler(regs_t r) {
+    /*if (pd_paddr_to_free) {
+        free_pd(pd_paddr_to_free);
+        pd_paddr_to_free = 0;
+    }*/
+
     // Reset the PICs! This allows them to fire again once they are re-enabled
 	if (r.int_no >= 40) {
 		outportb(0xA0, 0x20);
@@ -180,6 +187,11 @@ void irq_handler(regs_t r) {
 }
 
 void isr_handler(regs_t r) {
+    /*if (pd_paddr_to_free) {
+        free_pd(pd_paddr_to_free);
+        pd_paddr_to_free = 0;
+    }*/
+
     // This line is important. When the processor extends the 8-bit interrupt number
     // to a 32bit value, it sign-extends, not zero extends. So if the most significant
     // bit (0x80) is set, regs.int_no will be very large (about 0xffffff80).

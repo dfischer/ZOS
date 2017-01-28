@@ -11,3 +11,9 @@ int syscall_hlt() {
     __asm__ __volatile__("int $0x80" : "=a" (a) : "0" (1));
     return a;
 }
+
+int syscall_kill_current_process(int status) {
+    int a;
+    __asm__ __volatile__("int $0x80" : "=a" (a) : "0" (2), "b" (status));
+    return a;
+}

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+gdb -tui -ex "target remote localhost:1234" -ex "symbol-file test_prog/test" -ex "layout split"

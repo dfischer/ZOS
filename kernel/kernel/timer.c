@@ -10,7 +10,7 @@ void timer_handler(regs_t* r) {
 	timer_ticks++;
     
     //printf("tick\n");
-    switch_task(r);
+    switch_task(r, 0); // switch, but do not kill!
     //printf("tock\n");
 
 	if (timer_ticks % 100 == 0) {

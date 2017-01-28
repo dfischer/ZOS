@@ -60,7 +60,7 @@ $(HOSTEDOBJS) \
  
 LIBK_OBJS=$(FREEOBJS:.o=.libk.o)
 
-BINARIES=libc.a libk.a
+BINARIES=libc.a libk.a $(ARCHDIR)/crt0.o
 #BINARIES=libk.a
  
 .PHONY: all clean install install-headers install-libs

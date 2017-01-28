@@ -1,3 +1,6 @@
 *.iso
+*.img
 isodir
 sysroot
+os_specific_toolchain/build_binutils
+os_specific_toolchain/build_gcc

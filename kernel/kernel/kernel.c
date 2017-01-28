@@ -17,7 +17,6 @@
 #include <kernel/terminal.h>
 #include <kernel/vfs.h>
 #include <kernel/task.h>
-#include <kernel/read_elf.h>
 #include <kernel/syscall.h>
  
 extern uint32_t kernelStart;
@@ -35,6 +34,7 @@ int testp(int p1) {
 
 void kernel_main(multiboot_info_t *mbd, uint32_t initial_stack) {
     initial_esp = initial_stack;
+    pd_paddr_to_free = 0;
     uint32_t pd_physical_addr = get_pd_pa();
     uint32_t kernelpages = init_paging((uint32_t)&kernelStart, (uint32_t)&kernelEnd);
     gdt_install();
@@ -110,6 +110,15 @@ void kernel_main(multiboot_info_t *mbd, uint32_t initial_stack) {
 
     init_syscalls();
 
+    //printf("free blocks: %x\n", pmmngr_get_free_block_count());
+    //printf("allocated byes: %x\n", get_allocated_bytes(0));
+    start_process("a:/test2", 0, 0, 0x2000, 0x2000);
+    //sleep(40);
+    //start_process("a:/test", 0, 0, 0x2000, 0x2000);
+    //start_process("a:/test2", 0, 0, 0x2000, 0x2000);
+
+    //TODO: TEST THAT KILL PROCESS WORKS, and add a syscall that's called in exit to kill the current process. Finally, add a call to end the initial kernel process at the end of this function, making sure to set free_memory to 0. Then check that everything is working by starting a process and killing it and seeing if all the memory is actually freed
+
     /*int pid = kfork();
 
     if (pid) { // This is the parent
@@ -134,7 +143,7 @@ void kernel_main(multiboot_info_t *mbd, uint32_t initial_stack) {
 
 
 
-    int res = read_elf("a:/test");
+    //int res = read_elf("a:/test");
     //read_elf("a:/test_old");
 
 
@@ -252,6 +261,6 @@ void kernel_main(multiboot_info_t *mbd, uint32_t initial_stack) {
 
     //NEXT UP, SET UP A SYSTEM TO MAP THE NEW PAGE INTO THE VIRTUAL ADDRESS SPACE, AND THINK ABOUT REORGANIZING MAYBE
     printf("Done.");
-    syscall_hlt();
+    //syscall_hlt();
     //__asm__ __volatile__("int $0x80");
 }

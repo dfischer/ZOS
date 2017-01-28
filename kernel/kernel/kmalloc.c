@@ -44,6 +44,7 @@ void consolidate_space(uint8_t *current_page, uint16_t *header) {
 uint8_t *setup_page() {
 	uint8_t *new_page = allocate_page();
 	write_short(new_page, 0, 4090);
+    //printf("setting up kmalloc page: %x\n", new_page);
 	return new_page;
 }
 
@@ -54,6 +55,42 @@ typedef struct pagelist {
 } pagelist_t;
 
 pagelist_t* first_pl;
+
+// Returns the total number of allocated bytes, including from large pages
+int get_allocated_bytes(int include_large) {
+    uint32_t allocated_bytes = 0;
+
+    // First go through and get the allocated bytes from large pages
+    if (include_large) {
+        pagelist_t* current_pl = first_pl;
+        while (current_pl) {
+            allocated_bytes += 4096*current_pl->np;
+            current_pl = current_pl->next;
+        }
+    }
+
+    // Then get the smaller allocated bytes
+	uint8_t *current_page = first_page;
+	while(1) {
+		uint16_t *header = read_short(current_page, 0);
+		while (*header) {
+			uint16_t used = *header & 0x8000;
+			uint16_t next_header_addr = *header & 0x0FFF;
+			uint16_t current_header_addr = (uint32_t)header - (uint32_t)current_page;
+		
+            if (used) {
+                allocated_bytes += (next_header_addr- (current_header_addr + 2));
+            }
+		    header = read_short(current_page, next_header_addr);
+		}
+	
+		uint32_t *next_page_addr = (uint32_t *)(header+1);
+		if (*next_page_addr == 0) {
+            return allocated_bytes;
+		}
+		current_page = (uint8_t *)*next_page_addr;
+	}
+}
 
 void *kmalloc(uint16_t bytes) {
     if (bytes == 0) return 0;

@@ -44,6 +44,8 @@ int open(const char* path) {
     }
 
     mountpoint *mp = ext_mp[letter_real-'a'];
+
+
     fs_node* curnode = mp->type->get_rn(mp->bootrecord); // This will allocate space for a node
 
     char* dirname = strtok(NULL, "/");
@@ -71,6 +73,7 @@ int open(const char* path) {
     curnode->letter = letter_real;
     mp->type->openfile(mp->drive, mp->sector, mp->bootrecord, curnode);
     fd_table[i] = curnode;
+
     return i;
 }
 
@@ -88,7 +91,7 @@ int close(int fd) {
 
     fd_table[fd] = 0;
     mountpoint *mp = ext_mp[curnode->letter-'a'];
-    printf("curnode letter: %x, curnode type: %x, curnode file: %x, curnode file cluster: %d\n", curnode->letter, curnode->type, curnode->file, ((unsigned int*)curnode->file)[0]);
+    //printf("curnode letter: %x, curnode type: %x, curnode file: %x, curnode file cluster: %d\n", curnode->letter, curnode->type, curnode->file, ((unsigned int*)curnode->file)[0]);
     mp->type->freenode(curnode);
     return 1;
 }
@@ -162,7 +165,7 @@ int mount(unsigned char drive, unsigned char pnum, char letter) {
     }
 
     fs_type* fstype;
-    if (cpart->type == 0x0B) {
+    if (cpart->type == 0x0B || cpart->type == 0x0C) {
         fstype = &fat32_type;
     } else {
         printf("Unknown filesystem type %x, aborting mount\n", cpart->type);

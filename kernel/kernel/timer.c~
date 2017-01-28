@@ -13,8 +13,8 @@ void timer_handler(regs_t* r) {
     switch_task(r);
     //printf("tock\n");
 
-	if (timer_ticks % 1 == 0) {
-		printf("A second has passed\n");
+	if (timer_ticks % 100 == 0) {
+		//printf("A second has passed\n");
 	}
 }
 

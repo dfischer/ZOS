@@ -86,13 +86,13 @@ unsigned int get_next_cluster(unsigned char drive, unsigned int sec, vbr32_t *vb
 
     unsigned int *fat_section = kmalloc(vbr->bytes_per_sec);
     unsigned char err = ide_read_sectors(drive, 1, fat_sector + sec, 0, (unsigned short *)fat_section);
-    if (err) {ide_print_error(drive, err); return 0;}
+    if (err) {ide_print_error(drive, err); kfree(fat_section); return 0;}
 
     unsigned int fat_section_offset = cluster % (vbr->bytes_per_sec / 4);
     unsigned int next_cluster = fat_section[fat_section_offset] & 0x0FFFFFFF;
 
-    if (next_cluster >= 0x0FFFFFF7) return 0;
     kfree(fat_section);
+    if (next_cluster >= 0x0FFFFFF7) return 0;
     return next_cluster;
 }
 
@@ -294,7 +294,9 @@ void freenode_fat32(fs_node* node) {
         current = current->prev;
     }
 
+    //printf("freeing clusters: ");
     while (current) {
+        //printf("%x ", current->cluster);
         fat32_file* next = current->next;
         kfree(current);
         current = next;

@@ -2,12 +2,18 @@
 
 int syscall_terminal_write(const char* data, size_t size) {
     int a;
-    __asm__ __volatile__("sub $0x08, %%esp; int $0x80" : "=a" (a) : "0" (0), "b" (data), "c" (size));
+    __asm__ __volatile__("int $0x80" : "=a" (a) : "0" (0), "b" (data), "c" (size));
     return a;
 }
 
 int syscall_hlt() {
     int a;
-    __asm__ __volatile__("sub $0x08, %%esp; int $0x80" : "=a" (a) : "0" (1));
+    __asm__ __volatile__("int $0x80" : "=a" (a) : "0" (1));
+    return a;
+}
+
+int syscall_kill_current_process() {
+    int a;
+    __asm__ __volatile__("int $0x80" : "=a" (a) : "0" (2));
     return a;
 }

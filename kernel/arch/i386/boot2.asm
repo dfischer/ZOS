@@ -68,6 +68,29 @@ read_eip:
     pop eax
     jmp eax
 
+global switch_to_user_mode
+switch_to_user_mode:
+    cli
+    pop ecx ; to get rid of the return eip which is not needed
+    pop ecx ; entry_pos
+    pop edx ; new user esp
+    mov ax, 0x23
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    
+    push 0x23
+    push edx
+    pushf
+    pop edx
+    or eax, 0x200
+    push eax
+    push 0x1B
+    push ecx
+    iret
+    
+
 global set_regs
 set_regs:
     cli
@@ -354,8 +377,6 @@ isr_common_stub:
 
     mov ax, ds
     push eax
-    mov ebx, cr3
-    push ebx
 
     mov ax, 0x10
     mov ds, ax
@@ -365,10 +386,9 @@ isr_common_stub:
 ;    mov eax, esp
 ;    push eax
 ;    mov eax, irq_handler
+    sti
     call isr_handler
 ;    pop eax
-    pop ebx
-    mov cr3, ebx
     pop ebx
     mov ds, bx
     mov es, bx
@@ -515,8 +535,6 @@ irq_common_stub:
 
     mov ax, ds
     push eax
-    mov ebx, cr3
-    push ebx
 
     mov ax, 0x10
     mov ds, ax
@@ -526,10 +544,9 @@ irq_common_stub:
 ;    mov eax, esp
 ;    push eax
 ;    mov eax, irq_handler
+    sti
     call irq_handler
 ;    pop eax
-    pop ebx
-    mov cr3, ebx
     pop ebx
     mov ds, bx
     mov es, bx

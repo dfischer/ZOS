@@ -2,7 +2,7 @@
 #define _KERNEL_INTEX_H
 
 typedef struct regs {
-    unsigned int cr3, ds;
+    unsigned int ds;
     unsigned int edi, esi, ebp, esp, ebx, edx, ecx, eax;
     unsigned int int_no, err_code;
     unsigned int eip, cs, eflags, useresp, ss;

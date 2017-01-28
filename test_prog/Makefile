@@ -1,2 +1,2 @@
 all:
-	i686-zos-gcc -g -Wall test.c -o test
+	i686-zos-gcc -g -Wall -std=gnu11 test.c -o test

@@ -1,6 +1,17 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 int main() {
-    printf("Hello, world!\n");
+
+    for (int i = 1; i < 10; i++) {
+        int tmp = 73;
+        for (int j = 1; j < 2872389; j++) {
+            tmp += ((117234253*i*j) % 5);
+        }
+        printf("%d ", tmp);
+    }
+    //printf("Hello, world!\n");
+
+    //syscall_hlt();
     return 0;
 }

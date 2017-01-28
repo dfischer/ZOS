@@ -5,19 +5,30 @@
 #include <kernel/intex.h>
 
 uint32_t initial_esp; // This will have the initial location of the start of the stack (highest memory address)
+uint32_t pd_paddr_to_free; // When this is set, the page directory and all its contents should be freed
 
 typedef struct task {
     int id;                // Process ID.
-    uint32_t esp;       // Stack and base pointers.
-    //uint32_t eip;            // Instruction pointer.
+    uint32_t esp;        // current esp, to resume from (inside the interrupt)
+    uint32_t eip;
+    uint32_t kernel_esp; // esp of the kernel, which gets loaded when an interrupt from user space happens
+
+    uint32_t user_stack_bottom; // Location of the top of the user stack. Highest address. This is not really needed for now
+    uint32_t user_stack_size; // Size in bytes of the user stack. Again just used for bookkeeping
+    uint32_t user_heap_ptr; // Location of the bottom of the heap/ Again just used for bookkeeping
+    uint32_t user_heap_size; // Size in bytes of the heap. Again just used for bookkeeping
+
     uint32_t page_directory; // physical address of the page directory. This will be in the kernel heap, so it should be able to be accessed from anywhere
     struct task *next;     // The next task in a linked list.
 } task_t;
 
 int getpid();
-int fork();
-void switch_task();
+int kfork();
+void switch_task(regs_t* r, int kill);
 void switch_to_user_mode();
 void init_multitasking(uint32_t initial_pd_physical_addr);
+
+void start_process(const char* filename, int argc, char* argv[], int stack_size, int heap_size);
+void kill_current_process();
 
 #endif

@@ -140,26 +140,31 @@ void* allocate_page() {
 // I am 95% sure this is correct, even though parts seem weird. get_pagetable() gets a pointer to something like
 // 0xFF000000, but you should still be able to set the entries, so setting them all to 0 should work fine, for
 // example.
-void* allocate_specific_page(uint32_t vaddr) {
+int allocate_specific_page(uint32_t vaddr, int user, int writable) {
+    unsigned char flags = 1;
+    if (writable) flags |= 1 << 1;
+    if (user) flags |= 1 << 2;
+    //printf("flags: %x\n", flags);
+
     int pde_i = vaddr / 0x400000; // Each page table maps 4 MB = 0x400000
     int pte_i = (vaddr % 0x400000) / 0x1000;
 
     if (get_pagedir()[pde_i]) {
         if (get_pagetable(pde_i)[pte_i]) {
             printf("Error allocating page %x, this page has already been allocated\n", vaddr);
-            return 0;
+            return 1;
         }
     } else {
-        get_pagedir()[pde_i] = pmmngr_alloc_block() | 7;
+        get_pagedir()[pde_i] = pmmngr_alloc_block() | flags;
         uint32_t* new_pt = get_pagetable(pde_i);
         memset(new_pt, 0x00, 0x1000);
     }
 
-    get_pagetable(pde_i)[pte_i] = pmmngr_alloc_block() | 7;
+    get_pagetable(pde_i)[pte_i] = pmmngr_alloc_block() | flags;
     void* newpage = (void*) vaddr;
     memset(newpage, 0x00, 0x1000);
 
-    return newpage;
+    return 0;
 }
 
 // Both deallocate the physical page, and unmap the virtual page. The unmapping probably isn't really necessary,

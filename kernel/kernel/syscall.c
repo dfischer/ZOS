@@ -6,12 +6,14 @@
 
 #include <kernel/tty.h>
 #include <kernel/misc.h>
+#include <kernel/task.h>
 
-uint32_t num_syscalls = 2;
-static void *syscalls[2] =  // THESE FUNCTIONS HAVE TO RETURN SOMETHING!!!
+uint32_t num_syscalls = 3;
+static void *syscalls[3] =  // THESE FUNCTIONS HAVE TO RETURN SOMETHING!!!
 {
    &terminal_write,
    &hlt,
+   &kill_current_process,
 };
 
 void syscall_handler(regs_t *regs) {
@@ -22,7 +24,7 @@ void syscall_handler(regs_t *regs) {
        return;
    }
 
-   printf("syscall %d called\n", regs->eax);
+   //printf("syscall %d called\n", regs->eax);
 
    // Get the required syscall location.
    void *location = syscalls[regs->eax];
@@ -32,13 +34,15 @@ void syscall_handler(regs_t *regs) {
    // use all the parameters it wants, and we can pop them all back off afterwards.
    int ret = 0;
    __asm__ __volatile__ (" \
+     pusha;\
      push %1; \
      push %2; \
      push %3; \
      push %4; \
      push %5; \
      call *%6; \
-     add $0x14,%%esp \
+     add $0x14,%%esp; \
+     popa;\
    " : "=a" (ret) : "r" (regs->edi), "r" (regs->esi), "r" (regs->edx), "r" (regs->ecx), "r" (regs->ebx), "r" (location));
    regs->eax = ret;
 

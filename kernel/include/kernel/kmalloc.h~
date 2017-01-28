@@ -1,5 +1,5 @@
-#ifndef _KERNEL_PMMNGR_H
-#define _KERNEL_PMMNGR_H
+#ifndef _KERNEL_KMALLOC_H
+#define _KERNEL_KMALLOC_H
 
 #include <stdint.h>
 
